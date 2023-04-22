@@ -5,13 +5,11 @@ let canvas;
 let player;
 let players;
 let board;
-let step;
-
 
 class Board {
     constructor() {
         this.size = 10;
-        this.tiles = Array(this.size).fill(0).map(() => Array(this.size).fill(0));
+        this.tiles = [];
     }
     drawBoard() {
         ctx.beginPath();
@@ -28,25 +26,36 @@ class Board {
         ctx.stroke();
         ctx.closePath();
     }
+    drawItems() {
+        this.tiles.forEach(function(e) {
+            e.draw();
+        });
+    }
 }
 
 class Player {
-    constructor(x, y) {
+    constructor(x, y, p, h, r) {
         this.x = x;
         this.y = y;
-        this.points = 0;
-        this.health = 3;
-        this.range = 1;
-        this.color = '#ff8080'
+        board.tiles.push(this);
+        this.points = p;
+        this.health = h;
+        this.range = r;
+        this.color = '#ff8080';
     }
     draw() {
         ctx.fillStyle = this.color;
-        let margin = step/10
-        let x = player.x*step + margin;
-        let y = player.y*step + margin;
+        let margin = step/10;
+        // ctx.strokeStyle = '#000000';
+        // ctx.lineWidth = margin/2;
+        let x = this.x*step + margin;
+        let y = this.y*step + margin;
         ctx.fillRect(x, y, margin*8, margin*8);
+        // ctx.stroke();
     }
 }
+
+
 
 function init() {
     canvas = document.getElementById('gameWindow');
@@ -57,18 +66,41 @@ function init() {
         return;
     }
     ctx = canvas.getContext('2d');
-    player = new Player(3, 2);
     board = new Board();
-    step = canvas.width/board.size;
+    player = createRandomPlayer();
+    player.color = '#007fff'
+    console.log(board.tiles);
+    // get board state from server
+    
     window.requestAnimationFrame(gameloop);
 }
 
+window.addEventListener('keydown', (e) => {
+    if (e.code == 'KeyW') {
+        player.y -= 1;
+    } else if (e.code == 'KeyA') {
+        player.x -= 1;
+    } else if (e.code == 'KeyS') {
+        player.y += 1;
+    } else if (e.code == 'KeyD') {
+        player.x += 1;
+    }
+});
+
+function createRandomPlayer() {
+    return new Player(Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), 0, 3, 1)
+}
+
 function gameloop() {
-    // talk to server and get board state
+    step = canvas.width/board.size;
+    let size = Math.min(window.innerWidth, window.innerHeight);
+    canvas.width = size;
+    canvas.height = size;
+    // get other player moves (if any)
 
     // update board and draw
     board.drawBoard();
-    player.draw();
+    board.drawItems();
 
     // request player input (if any)
 
