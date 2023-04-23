@@ -3,20 +3,22 @@ window.onload = init;
 let ctx;
 let canvas;
 let player;
-let players;
 let board;
+let secret;
+let id;
+let mode = 'm';
 
 class Board {
-    constructor() {
-        this.size = 10;
-        this.tiles = [];
+    constructor(size) {
+        this.size = size;
+        this.players = {};
     }
     drawBoard() {
         ctx.beginPath();
         ctx.fillStyle = '#d0d0d0';
         ctx.strokeStyle = '#c0c0c0';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.lineWidth = step/20;
+        ctx.lineWidth = step/(this.size*2);
         for (let i = 0; i <= this.size; i++) {
             ctx.moveTo(0,i*step);
             ctx.lineTo(canvas.width,i*step);
@@ -26,35 +28,43 @@ class Board {
         ctx.stroke();
         ctx.closePath();
     }
-    drawItems() {
-        this.tiles.forEach(function(e) {
-            e.draw();
-        });
+    drawPlayers() {
+        for (let [id, player] of Object.entries(this.players)) {
+            player.draw();
+        }
     }
 }
 
 class Player {
-    constructor(x, y, p, h, r) {
-        this.x = x;
-        this.y = y;
-        board.tiles.push(this);
-        this.points = p;
-        this.health = h;
-        this.range = r;
+    constructor(player) {
+        this.x = player['x'];
+        this.y = player['y'];
+        this.points = player['points'];
+        this.health = player['health'];
+        this.range = player['range'];
         this.color = '#ff8080';
     }
     draw() {
+        ctx.beginPath();
         ctx.fillStyle = this.color;
         let margin = step/10;
-        // ctx.strokeStyle = '#000000';
-        // ctx.lineWidth = margin/2;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = margin/2;
         let x = this.x*step + margin;
         let y = this.y*step + margin;
-        ctx.fillRect(x, y, margin*8, margin*8);
-        // ctx.stroke();
+        ctx.rect(x, y, margin*8, margin*8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.closePath();
+    }
+    update(player) {
+        this.x = player['x'];
+        this.y = player['y'];
+        this.points = player['points'];
+        this.health = player['health'];
+        this.range = player['range'];
     }
 }
-
 
 
 function init() {
@@ -66,29 +76,29 @@ function init() {
         return;
     }
     ctx = canvas.getContext('2d');
-    board = new Board();
-    player = createRandomPlayer();
-    player.color = '#007fff'
-    console.log(board.tiles);
+    canvas.addEventListener('click', (e) => {
+        console.log(e.pageX, e.pageY);
+    });
     // get board state from server
+    secret = localStorage.getItem('secret');
+    id = localStorage.getItem('id');
+    if (secret == null) {
+        [id, secret, player] = join();
+        localStorage.setItem('secret', secret);
+        localStorage.setItem('id', id);
+    } else {
+        player = get_player(id);
+    }
+    let [size, players] = get_board_data(id);
+    board = new Board(size);
+    for (let [id, player] of Object.entries(players)) {
+        board.players[id] = new Player(player)
+    }
+    player = new Player(player);
+    board.players[id] = player;
+    player.color = '#7fffff';
     
     window.requestAnimationFrame(gameloop);
-}
-
-window.addEventListener('keydown', (e) => {
-    if (e.code == 'KeyW') {
-        player.y -= 1;
-    } else if (e.code == 'KeyA') {
-        player.x -= 1;
-    } else if (e.code == 'KeyS') {
-        player.y += 1;
-    } else if (e.code == 'KeyD') {
-        player.x += 1;
-    }
-});
-
-function createRandomPlayer() {
-    return new Player(Math.floor(Math.random() * 10), Math.floor(Math.random() * 10), 0, 3, 1)
 }
 
 function gameloop() {
@@ -96,15 +106,13 @@ function gameloop() {
     let size = Math.min(window.innerWidth, window.innerHeight);
     canvas.width = size;
     canvas.height = size;
+
     // get other player moves (if any)
+    get_updates();
 
     // update board and draw
     board.drawBoard();
-    board.drawItems();
-
-    // request player input (if any)
-
-    // send server player move
+    board.drawPlayers();
 
     window.requestAnimationFrame(gameloop);
 }
