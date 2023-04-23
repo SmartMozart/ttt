@@ -2,13 +2,17 @@ let networker = new Worker('/worker.js');
 let lastTimestamp = Date.now()/1000;
 
 networker.onmessage = (e) => {
-	let [event, data] = e.data;
+	let [event, msg] = e.data;
 	if (event == 'updates') {
+		let [data, reload] = msg;
+		if (reload) {
+			window.location.reload()
+		}
 		for (let [i, p] of Object.entries(data)) {
 			if (i in board.players) {
 				board.players[i].update(p);
 			} else {
-				board.players[i] = new Player(p);
+				board.players[i] = new Player(i, p);
 			}
 		}
 	}
@@ -26,12 +30,16 @@ function api(method, path, data) {
   return JSON.parse(xhr.responseText);
 }
 
+function action(action, params) {
+	networker.postMessage(['action', [action, secret, params]]);
+}
+
 function get_board_data(exclude) {
 	let board = api('GET', '/board');
 	let playerlist = board['players'];
 	delete playerlist[playerlist.indexOf(exclude)];
 	let players = api('POST', '/players', playerlist);
-	return [board['size'], players];
+	return [board['sizex'], board['sizey'], players];
 }
 
 function join() {
@@ -43,7 +51,7 @@ function join() {
 }
 
 function get_player(id) {
-	if (!api('GET', '/exists/'+id)) {
+	if (!api('GET', '/exists/'+id)['exists']) {
 		localStorage.clear();
 		document.location.reload();
 	}
@@ -59,6 +67,6 @@ function get_updates() {
 	if (time-lastTimestamp < 1) {
 		return;
 	}
-	networker.postMessage(['since', lastTimestamp-1]);
+	networker.postMessage(['since', lastTimestamp-2]);
 	lastTimestamp = time;
 }

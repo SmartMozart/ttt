@@ -20,6 +20,7 @@ onmessage = (e) => {
 }
 
 function action(params) {
+	console.log('p')
 	let payload = {"action": params[0], "secret": params[1], "params": params[2]}
 	api('POST', '/action', payload);
 }
@@ -29,6 +30,11 @@ function since(time) {
 	if (changes.length == 0) {
 		return;
 	}
+	let reload = (changes.includes('reload'));
+	if (reload) {
+		let rl = changes.indexOf('reload');
+		delete changes[rl];
+	}
 	let new_playerdata = api('POST', '/players', changes);
-	postMessage(['updates', new_playerdata]);
+	postMessage(['updates', [new_playerdata, reload]]);
 }
