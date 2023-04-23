@@ -113,8 +113,9 @@ function doAction() {
             return;
         }
         player.range += 1;
-        player.points -= 1;
+        player.points -= 3;
         action('upgrade', {});
+        return;
     }
     if (selection == null) {
         return;
