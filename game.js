@@ -84,6 +84,9 @@ class Player {
         ctx.closePath();
     }
     update(p) {
+        if (Object.keys(p).includes('customColor')) {
+            this.color = p['customColor'];
+        }
         if (this.id != id) {
             this.x = p['x'];
             this.y = p['y'];
